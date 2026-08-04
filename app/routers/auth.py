@@ -1,0 +1,56 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
+from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse
+from app.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.auth import CreateUserError, check_email_exists, create_user, get_user_by_email
+from app.services.password import hash_password, verify_password
+from app.services.jwt import create_access_token, create_refresh_token
+
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"],
+)
+
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+async def register_user( request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    if await check_email_exists(request.email, db):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    
+    hashed_password = hash_password(request.password)
+
+    user, error = await create_user(request.email, hashed_password, db)
+    if user is None:
+        if error == CreateUserError.CONFLICT:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Failed to create user")
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unexpected error occurred")
+
+    ## TODO: generate a verification token to send to the user on email
+    ## store token with 24h expiration (verification_tokens table)
+    ## send email
+    ## WILL BE IMPLEMENTED WHEN EMAIL SERVICE IS READY
+    
+    return RegisterResponse()
+
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+async def login_user(request: LoginRequest, db: AsyncSession = Depends(get_db)):
+    user = await get_user_by_email(request.email, db)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    if not verify_password(request.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    if user.is_active is False:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive")
+    if user.is_verified is False:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is not verified")
+
+    jwt_token = create_access_token(user_id=str(user.id), email=user.email, role=str(user.role))
+    raw_refresh_token = await create_refresh_token(user_id=user.id, db=db)
+    if not raw_refresh_token:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred while generating refresh token")
+    return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token)
+
+## TODO: Implement refresh token endpoint POST /auth/refresh-token
+## TODO: handle concurent request 
+## TODO: Implement logout endpoint POST /auth/logout
