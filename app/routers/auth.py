@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
-from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse
+from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse
 from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.auth import CreateUserError, check_email_exists, create_user, get_user_by_email
+from app.services.auth import CreateUserError, check_email_exists, create_user, get_user_by_email, get_user_by_id
 from app.services.password import hash_password, verify_password
-from app.services.jwt import create_access_token, create_refresh_token
+from app.services.jwt import create_access_token, create_refresh_token, search_refresh_token_in_db
 
 router = APIRouter(
     prefix="/auth",
@@ -52,5 +52,28 @@ async def login_user(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token)
 
 ## TODO: Implement refresh token endpoint POST /auth/refresh-token
-## TODO: handle concurent request 
-## TODO: Implement logout endpoint POST /auth/logout
+
+@router.post("/refresh-token", response_model=RefreshTokenResponse, status_code=status.HTTP_200_OK)
+async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    search_token_found = await search_refresh_token_in_db(request.refresh_token, db)
+    if search_token_found is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalid or expired")
+    
+    user = await get_user_by_id(search_token_found.user_id, db)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalid or expired")
+
+    new_raw_refresh_token= None
+    async with db.begin():
+        search_token_found.revoked = True
+        new_raw_refresh_token = await create_refresh_token(user_id=user.id, db=db, commit=False)
+    
+    if not new_raw_refresh_token:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred while generating refresh token")
+    
+    new_jwt_token = create_access_token(user_id= str(user.id) ,email=user.email, role=str(user.role))
+    return RefreshTokenResponse(access_token = new_jwt_token, refresh_token=new_raw_refresh_token)
+
+
+# TODO: handle concurent request 
+# TODO: Implement logout endpoint POST /auth/logout
