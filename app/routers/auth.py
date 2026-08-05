@@ -64,12 +64,15 @@ async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalid or expired")
 
     new_raw_refresh_token= None
-    async with db.begin():
+    try:
         search_token_found.revoked = True
         new_raw_refresh_token = await create_refresh_token(user_id=user.id, db=db, commit=False)
-    
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
     if not new_raw_refresh_token:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred while generating refresh token")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
     
     new_jwt_token = create_access_token(user_id= str(user.id) ,email=user.email, role=str(user.role))
     return RefreshTokenResponse(access_token = new_jwt_token, refresh_token=new_raw_refresh_token)
