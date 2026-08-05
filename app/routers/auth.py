@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
-from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse
+from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse, LogoutRequest
 from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.auth import CreateUserError, check_email_exists, create_user, get_user_by_email, get_user_by_id
+from app.services.auth import CreateUserError, check_email_exists, create_user, get_user_by_email, get_user_by_id, logout_user
 from app.services.password import hash_password, verify_password
 from app.services.jwt import create_access_token, create_refresh_token, search_refresh_token_in_db
 
@@ -51,7 +51,6 @@ async def login_user(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred while generating refresh token")
     return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token)
 
-## TODO: Implement refresh token endpoint POST /auth/refresh-token
 
 @router.post("/refresh-token", response_model=RefreshTokenResponse, status_code=status.HTTP_200_OK)
 async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
@@ -80,3 +79,8 @@ async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends
 
 # TODO: handle concurent request 
 # TODO: Implement logout endpoint POST /auth/logout
+@router.post("/logout", status_code = status.HTTP_204_NO_CONTENT)
+async def logout(request: LogoutRequest, db: AsyncSession = Depends(get_db)):
+    await logout_user(request.refresh_token, db)
+
+

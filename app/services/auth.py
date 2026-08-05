@@ -7,6 +7,7 @@ from app.models.user import User
 from sqlalchemy.exc import IntegrityError
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.jwt import search_refresh_token_in_db
 
 
 class CreateUserError(Enum):
@@ -39,3 +40,10 @@ async def get_user_by_email(email: str, db) -> User | None:
 async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession):
     result = await db.execute(select(User).where(User.id==user_id))
     return result.scalar_one_or_none()
+
+async def logout_user(token: str, db: AsyncSession)->None:
+    refresh_token = await search_refresh_token_in_db(token, db)
+    if refresh_token is None:
+        return 
+    refresh_token.revoked= True
+    await db.commit()
