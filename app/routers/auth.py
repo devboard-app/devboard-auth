@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import text
 from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse, LogoutRequest
 from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.auth import CreateUserError, check_email_exists, create_user, get_user_by_email, get_user_by_id, logout_user
+from app.services.auth import CreateUserError, check_email_exists, create_user, get_user_by_email, get_user_by_id, logout_user, logout_all_user
 from app.services.password import hash_password, verify_password
-from app.services.jwt import create_access_token, create_refresh_token, search_refresh_token_in_db
+from app.services.jwt import create_access_token, create_refresh_token, search_refresh_token_in_db, decode_access_token
+import uuid
 
 router = APIRouter(
     prefix="/auth",
@@ -84,3 +86,12 @@ async def logout(request: LogoutRequest, db: AsyncSession = Depends(get_db)):
     await logout_user(request.refresh_token, db)
 
 
+@router.post("/logout-all", status_code= status.HTTP_204_NO_CONTENT)
+async def logout_all(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/auth/login")), db: AsyncSession = Depends(get_db)):
+    try:
+        payload = decode_access_token(token)
+        user_id = uuid.UUID(payload["sub"])
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    await logout_all_user(user_id,db)

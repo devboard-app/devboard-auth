@@ -2,8 +2,8 @@
 import uuid
 
 from fastapi import HTTPException
-from sqlalchemy import  select, text
-from app.models.user import User
+from sqlalchemy import  select, text, update
+from app.models.user import User, RefreshToken
 from sqlalchemy.exc import IntegrityError
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -46,4 +46,12 @@ async def logout_user(token: str, db: AsyncSession)->None:
     if refresh_token is None:
         return 
     refresh_token.revoked= True
+    await db.commit()
+
+async def logout_all_user(user_id: uuid.UUID, db:AsyncSession)->None:
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id)
+        .values(revoked=True)
+    )
     await db.commit()
