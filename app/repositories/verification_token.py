@@ -23,3 +23,7 @@ async def get_verification_token_by_hash(token_hash: str, db: AsyncSession) -> V
 async def get_active_verification_token_by_user_id(user_id: uuid.UUID, db: AsyncSession)-> VerificationToken | None:
     result = await db.execute(select(VerificationToken).where(VerificationToken.user_id==user_id).where(VerificationToken.used==False).where(VerificationToken.expires_at > datetime.now(timezone.utc)).limit(1))
     return result.scalar_one_or_none()
+
+async def mark_verification_token_used(verification_token: VerificationToken, db: AsyncSession)-> None:
+    verification_token.used = True
+    await db.flush()

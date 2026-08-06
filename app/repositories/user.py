@@ -31,3 +31,7 @@ async def check_email_exists(email:str, db: AsyncSession)->bool:
 async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession)-> User | None:
     result = await db.execute(select(User).where(User.id==user_id))
     return result.scalar_one_or_none()
+
+async def mark_user_verified(user: User, db: AsyncSession)->None:
+    user.is_verified= True
+    await db.flush()

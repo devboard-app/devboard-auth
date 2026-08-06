@@ -30,3 +30,7 @@ class RefreshTokenResponse(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: str
+
+
+class VerifyEmailResponse(BaseModel):
+    message: str="Email verified successfully"

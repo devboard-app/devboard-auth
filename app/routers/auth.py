@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, status
-from fastapi.security import OAuth2PasswordBearer
-from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse, LogoutRequest
+from fastapi import APIRouter, Depends, status, Query
+from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse, LogoutRequest, VerifyEmailRequest, VerifyEmailResponse
 from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.auth import  register, login, refresh , logout, logout_all
+from app.services.auth import  register, login, refresh , logout, logout_all, verify_email as verify
 from app.dependencies import oauth2_scheme
 
 router = APIRouter(
@@ -37,3 +36,8 @@ async def logout_user(request: LogoutRequest, db: AsyncSession = Depends(get_db)
 @router.post("/logout-all", status_code= status.HTTP_204_NO_CONTENT)
 async def logout_all_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     await logout_all(token, db)
+
+@router.post("/verify-email", response_model= VerifyEmailResponse, status_code= status.HTTP_200_OK)
+async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    await verify(token, db)
+    return VerifyEmailResponse()
