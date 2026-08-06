@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status, Query
-from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse, LogoutRequest, VerifyEmailRequest, VerifyEmailResponse
+from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, RefreshTokenRequest, RefreshTokenResponse, LogoutRequest, VerifyEmailResponse
 from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.auth import  register, login, refresh , logout, logout_all, verify_email as verify
