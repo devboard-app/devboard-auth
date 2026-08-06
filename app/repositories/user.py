@@ -1,9 +1,12 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.user import User
-from sqlalchemy import  select
-from sqlalchemy.exc import IntegrityError
-from app.exceptions import EmailAlreadyExistsException, UnexpectedException
 import uuid
+
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.exceptions import EmailAlreadyExistsException, UnexpectedException
+from app.models.user import User
+
 
 async def insert_user(user_email: str, user_hashed_password: str, db: AsyncSession)-> User:
     try:

@@ -1,11 +1,10 @@
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.database import get_db
-from app.routers import auth
 from app.exception_handlers import register_exception_handlers
-
-
+from app.routers import auth
 
 app = FastAPI(
     title="Devboard Auth Service",

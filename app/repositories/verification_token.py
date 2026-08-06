@@ -1,10 +1,13 @@
-from sqlalchemy import select
-from datetime import datetime, timezone, timedelta
-from app.exceptions import UnexpectedException
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.user import User, VerificationToken
-from app.config import settings
 import uuid
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import settings
+from app.exceptions import UnexpectedException
+from app.models.user import User, VerificationToken
+
 
 async def insert_verification_token(user: User, token_hash: str, db: AsyncSession)-> None:
     try:

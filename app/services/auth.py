@@ -1,16 +1,48 @@
 
 import hashlib
 import uuid
-from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta, timezone
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.config import settings
-from app.services.jwt import generate_refresh_token,  create_access_token, validate_refresh_token, decode_access_token, generate_verification_token
-from app.repositories.user import get_user_by_id, insert_user, get_user_by_email, mark_user_verified
-from app.repositories.token import revoke_and_insert_new_refresh_token, insert_new_refresh_token, revoke_refresh_token, get_refresh_token_by_hash, delete_all_user_tokens
-from app.services.password import hash_password, verify_password
-from app.exceptions import EmailAlreadyExistsException, InvalidCredentialsException, UserInactiveException, UserNotVerifiedException, InvalidTokenException, TokenExpiredException, InvalidAccessTokenException
-from app.repositories.verification_token import insert_verification_token, get_active_verification_token_by_user_id, get_verification_token_by_hash, mark_verification_token_used
+from app.exceptions import (
+    EmailAlreadyExistsException,
+    InvalidAccessTokenException,
+    InvalidCredentialsException,
+    InvalidTokenException,
+    TokenExpiredException,
+    UserInactiveException,
+    UserNotVerifiedException,
+)
 from app.infrastructure.email import send_verification_email
+from app.repositories.token import (
+    delete_all_user_tokens,
+    get_refresh_token_by_hash,
+    insert_new_refresh_token,
+    revoke_and_insert_new_refresh_token,
+    revoke_refresh_token,
+)
+from app.repositories.user import (
+    get_user_by_email,
+    get_user_by_id,
+    insert_user,
+    mark_user_verified,
+)
+from app.repositories.verification_token import (
+    get_active_verification_token_by_user_id,
+    get_verification_token_by_hash,
+    insert_verification_token,
+    mark_verification_token_used,
+)
+from app.services.jwt import (
+    create_access_token,
+    decode_access_token,
+    generate_refresh_token,
+    generate_verification_token,
+    validate_refresh_token,
+)
+from app.services.password import hash_password, verify_password
 
 
 async def register(user_email: str, password: str, db: AsyncSession):

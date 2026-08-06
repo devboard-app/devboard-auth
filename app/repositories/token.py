@@ -1,10 +1,11 @@
-from app.models.user import RefreshToken
-from sqlalchemy import select, update
 import uuid
 from datetime import datetime
-from app.exceptions import UnexpectedException
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.exceptions import UnexpectedException
+from app.models.user import RefreshToken
 
 
 async def get_refresh_token_by_hash(hash_token: str, db: AsyncSession)-> RefreshToken | None:

@@ -1,6 +1,8 @@
 from httpx import AsyncClient
+
 from app.config import settings
 from app.exceptions import EmailServiceException
+
 
 async def send_verification_email(to: str, verify_url: str) -> None:
     payload ={

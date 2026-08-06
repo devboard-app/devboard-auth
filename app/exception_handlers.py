@@ -1,18 +1,20 @@
 # app/exception_handlers.py
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+
 from app.exceptions import (
     EmailAlreadyExistsException,
-    UserNotFoundException,
-    InvalidCredentialsException,
-    UnexpectedException,
-    UserInactiveException,
-    UserNotVerifiedException,
+    EmailServiceException,
     InvalidAccessTokenException,
+    InvalidCredentialsException,
     InvalidTokenException,
     TokenExpiredException,
-    EmailServiceException,
+    UnexpectedException,
+    UserInactiveException,
+    UserNotFoundException,
+    UserNotVerifiedException,
 )
+
 
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(EmailAlreadyExistsException)
