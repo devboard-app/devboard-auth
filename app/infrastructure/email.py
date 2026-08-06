@@ -13,6 +13,7 @@ async def send_verification_email(to: str, verify_url: str) -> None:
     }
 
     async with AsyncClient() as client:
-        response = await client.post(settings.MAIL_SERVICE_URL, json=payload)
+        headers = {"X-Service-Key": settings.EMAIL_SERVICE_SECRET_KEY}
+        response = await client.post(settings.EMAIL_SERVICE_URL, json=payload, headers=headers)
         if response.status_code != 200:
             raise EmailServiceException()
