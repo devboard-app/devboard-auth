@@ -4,12 +4,13 @@ from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, Regis
 from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.auth import  register, login, refresh , logout, logout_all
-
+from app.dependencies import oauth2_scheme
 
 router = APIRouter(
     prefix="/auth",
     tags=["auth"],
 )
+
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_user( request: RegisterRequest, db: AsyncSession = Depends(get_db)):
@@ -34,5 +35,5 @@ async def logout_user(request: LogoutRequest, db: AsyncSession = Depends(get_db)
 
 
 @router.post("/logout-all", status_code= status.HTTP_204_NO_CONTENT)
-async def logout_all_user(token: str = Depends(OAuth2PasswordBearer(tokenUrl="/auth/login")), db: AsyncSession = Depends(get_db)):
+async def logout_all_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     await logout_all(token, db)
