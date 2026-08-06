@@ -41,6 +41,9 @@ async def validate_refresh_token(token: str, db: AsyncSession) -> RefreshToken:
 
 
 
-    
+def generate_verification_token() -> tuple[str, str]:
+    raw_verification_token = secrets.token_urlsafe(32)
+    verification_token_hash = hashlib.sha256(raw_verification_token.encode()).hexdigest()
+    return raw_verification_token, verification_token_hash
 
 

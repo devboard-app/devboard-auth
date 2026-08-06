@@ -4,21 +4,22 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta, timezone
 from app.config import settings
-from app.services.jwt import generate_refresh_token,  create_access_token, validate_refresh_token, decode_access_token
+from app.services.jwt import generate_refresh_token,  create_access_token, validate_refresh_token, decode_access_token, generate_verification_token
 from app.repositories.user import get_user_by_id, insert_user, get_user_by_email, check_email_exists
 from app.repositories.token import revoke_and_insert_new_refresh_token, insert_new_refresh_token, revoke_refresh_token, get_refresh_token_by_hash, delete_all_user_tokens
 from app.services.password import hash_password, verify_password
 from app.exceptions import EmailAlreadyExistsException, InvalidCredentialsException, UserInactiveException, UserNotVerifiedException, InvalidTokenException, InvalidAccessTokenException
-
+from app.repositories.verification_token import insert_verification_token
 
 async def register(user_email: str, password: str, db: AsyncSession):
     if await check_email_exists(user_email, db):
         raise EmailAlreadyExistsException()
     hashed_password = hash_password(password)
     user = await insert_user(user_email, hashed_password, db)
-    # TODO: generate verification token
-    # TODO: store token with 24h expiration (verification_tokens table)
+    raw_validation_token, validation_token_hash = generate_verification_token()
+    await insert_verification_token(user, validation_token_hash, db)
     # TODO: send email
+    await db.commit()
     
     return user
 

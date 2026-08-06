@@ -9,7 +9,7 @@ async def insert_user(user_email: str, user_hashed_password: str, db: AsyncSessi
     try:
         user = User(email=user_email, hashed_password=user_hashed_password, is_verified=True)
         db.add(user)
-        await db.commit()
+        await db.flush()
         await db.refresh(user)
         return user
     except IntegrityError:
