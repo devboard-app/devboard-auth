@@ -1,57 +1,72 @@
 
+import hashlib
 import uuid
-
-from fastapi import HTTPException
-from sqlalchemy import  select, text, update
-from app.models.user import User, RefreshToken
-from sqlalchemy.exc import IntegrityError
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.jwt import search_refresh_token_in_db
+from datetime import datetime, timedelta, timezone
+from app.config import settings
+from app.services.jwt import generate_refresh_token,  create_access_token, validate_refresh_token, decode_access_token
+from app.repositories.user import get_user_by_id, insert_user, get_user_by_email, check_email_exists
+from app.repositories.token import revoke_and_insert_new_refresh_token, insert_new_refresh_token, revoke_refresh_token, get_refresh_token_by_hash, delete_all_user_tokens
+from app.services.password import hash_password, verify_password
+from app.services.jwt import create_access_token
+from app.exceptions import EmailAlreadyExistsException, InvalidCredentialsException, UserInactiveException, UserNotVerifiedException, InvalidTokenException, InvalidAccessTokenException
 
 
-class CreateUserError(Enum):
-    CONFLICT = "conflict"
-    UNEXPECTED = "unexpected"
+async def register(user_email: str, password: str, db: AsyncSession):
+    if await check_email_exists(user_email, db):
+        raise EmailAlreadyExistsException()
+    hashed_password = hash_password(password)
+    user = await insert_user(user_email, hashed_password, db)
+    # TODO: generate verification token
+    # TODO: store token with 24h expiration (verification_tokens table)
+    # TODO: send email
+    
+    return user
 
-async def check_email_exists(email: str, db) -> bool:
-    result = await db.execute(select(User).where(User.email == email))
-    return result.scalar() is not None
+async def login(user_email: str, password: str, db: AsyncSession):
+    user = await get_user_by_email(user_email, db)
+    if user is None or not verify_password(password, user.hashed_password):
+        raise InvalidCredentialsException()
+    if not user.is_active:
+        raise UserInactiveException()
+    if not user.is_verified:
+        raise UserNotVerifiedException()
+    raw_refresh_token, hash_refresh_token = generate_refresh_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-async def create_user(user_email: str, user_hashed_password: str, db) -> tuple[User | None, CreateUserError | None]:
-    try:
-        new_user = User(email=user_email, hashed_password=user_hashed_password,
-                         is_verified=True)  # temporary - remove this line when email verification is implemented
-        db.add(new_user)
-        await db.commit()
-        await db.refresh(new_user)
-        return new_user, None
-    except IntegrityError:
-        await db.rollback()
-        return None, CreateUserError.CONFLICT
-    except Exception:
-        await db.rollback()
-        return None, CreateUserError.UNEXPECTED
+    await insert_new_refresh_token(user.id, hash_refresh_token, expires_at, db)
+    await db.commit()
+    jwt_token = create_access_token(user_id = str(user.id), email= user.email, role=str(user.role))
+    
+    return jwt_token, raw_refresh_token
 
-async def get_user_by_email(email: str, db) -> User | None:
-    result = await db.execute(select(User).where(User.email == email))
-    return result.scalar_one_or_none() 
+async def refresh(token: str, db: AsyncSession)-> tuple[str,str]:
+    old_refresh_token = await validate_refresh_token(token, db)
+    user = await get_user_by_id(old_refresh_token.user_id, db)
+    if user is None:
+        raise InvalidTokenException()
+    new_raw_refresh_token, new_refresh_token_hash = generate_refresh_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(days = settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-async def get_user_by_id(user_id: uuid.UUID, db: AsyncSession):
-    result = await db.execute(select(User).where(User.id==user_id))
-    return result.scalar_one_or_none()
+    await revoke_and_insert_new_refresh_token(old_refresh_token, user.id, new_refresh_token_hash, expires_at, db)
+    await db.commit()
+    new_jwt_token = create_access_token(user_id = str(user.id), email=user.email, role=str(user.role))
+    return new_jwt_token, new_raw_refresh_token
 
-async def logout_user(token: str, db: AsyncSession)->None:
-    refresh_token = await search_refresh_token_in_db(token, db)
+async def logout(token: str, db: AsyncSession)->None:
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    refresh_token = await get_refresh_token_by_hash(token_hash, db)
     if refresh_token is None:
         return 
-    refresh_token.revoked= True
+    await revoke_refresh_token(refresh_token, db)
     await db.commit()
 
-async def logout_all_user(user_id: uuid.UUID, db:AsyncSession)->None:
-    await db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user_id)
-        .values(revoked=True)
-    )
+async def logout_all(token: str, db:AsyncSession)->None:
+    try:
+        payload = decode_access_token(token)
+        user_id = uuid.UUID(payload["sub"])
+    except ValueError:
+        raise InvalidAccessTokenException()
+    await delete_all_user_tokens(user_id, db)
     await db.commit()
