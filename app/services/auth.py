@@ -1,7 +1,6 @@
 
 import hashlib
 import uuid
-from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta, timezone
 from app.config import settings
@@ -9,7 +8,6 @@ from app.services.jwt import generate_refresh_token,  create_access_token, valid
 from app.repositories.user import get_user_by_id, insert_user, get_user_by_email, check_email_exists
 from app.repositories.token import revoke_and_insert_new_refresh_token, insert_new_refresh_token, revoke_refresh_token, get_refresh_token_by_hash, delete_all_user_tokens
 from app.services.password import hash_password, verify_password
-from app.services.jwt import create_access_token
 from app.exceptions import EmailAlreadyExistsException, InvalidCredentialsException, UserInactiveException, UserNotVerifiedException, InvalidTokenException, InvalidAccessTokenException
 
 
