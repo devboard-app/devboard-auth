@@ -19,6 +19,10 @@ class TokenExpiredException(Exception):
 class InvalidAccessTokenException(Exception):
     pass
 
+##EMAIL
+class EmailServiceException(Exception):
+    pass
+
 ##OTHER
 class UnexpectedException(Exception):
     pass

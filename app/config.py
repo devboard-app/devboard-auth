@@ -5,6 +5,8 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
     DATABASE_URL_SYNC: str
+    FRONTEND_URL: str
+    MAIL_SERVICE_URL: str
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
@@ -12,4 +14,4 @@ class Settings(BaseSettings):
     VERIFICATION_TOKEN_EXPIRE_DAYS: int = 1
 
 
-settings = Settings() # type: ignore
+settings = Settings()  # type: ignore

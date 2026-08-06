@@ -11,7 +11,7 @@ from app.exceptions import (
     InvalidAccessTokenException,
     InvalidTokenException,
     TokenExpiredException,
-
+    EmailServiceException,
 )
 
 def register_exception_handlers(app: FastAPI):
@@ -50,3 +50,7 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(TokenExpiredException)
     async def token_expired_handler(request, exc):
         return JSONResponse(status_code=401, content={"detail": "Token invalid or expired"})
+
+    @app.exception_handler(EmailServiceException)
+    async def email_service_handler(request, exc):
+        return JSONResponse(status_code=502, content={"detail": "Email service is not working"})

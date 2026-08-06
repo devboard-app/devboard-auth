@@ -7,7 +7,7 @@ import uuid
 
 async def insert_user(user_email: str, user_hashed_password: str, db: AsyncSession)-> User:
     try:
-        user = User(email=user_email, hashed_password=user_hashed_password, is_verified=True)
+        user = User(email=user_email, hashed_password=user_hashed_password)
         db.add(user)
         await db.flush()
         await db.refresh(user)

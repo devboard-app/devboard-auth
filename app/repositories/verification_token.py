@@ -2,8 +2,9 @@ from sqlalchemy import select
 from datetime import datetime, timezone, timedelta
 from app.exceptions import UnexpectedException
 from sqlalchemy.ext.asyncio import AsyncSession
-from models.user import User, VerificationToken
+from app.models.user import User, VerificationToken
 from app.config import settings
+import uuid
 
 async def insert_verification_token(user: User, token_hash: str, db: AsyncSession)-> None:
     try:
@@ -17,4 +18,8 @@ async def insert_verification_token(user: User, token_hash: str, db: AsyncSessio
 
 async def get_verification_token_by_hash(token_hash: str, db: AsyncSession) -> VerificationToken | None:
     result = await db.execute(select(VerificationToken).where(VerificationToken.token_hash == token_hash))
+    return result.scalar_one_or_none()
+
+async def get_active_verification_token_by_user_id(user_id: uuid.UUID, db: AsyncSession)-> VerificationToken | None:
+    result = await db.execute(select(VerificationToken).where(VerificationToken.user_id==user_id).where(VerificationToken.used==False).where(VerificationToken.expires_at > datetime.now(timezone.utc)).limit(1))
     return result.scalar_one_or_none()

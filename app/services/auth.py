@@ -9,16 +9,22 @@ from app.repositories.user import get_user_by_id, insert_user, get_user_by_email
 from app.repositories.token import revoke_and_insert_new_refresh_token, insert_new_refresh_token, revoke_refresh_token, get_refresh_token_by_hash, delete_all_user_tokens
 from app.services.password import hash_password, verify_password
 from app.exceptions import EmailAlreadyExistsException, InvalidCredentialsException, UserInactiveException, UserNotVerifiedException, InvalidTokenException, InvalidAccessTokenException
-from app.repositories.verification_token import insert_verification_token
+from app.repositories.verification_token import insert_verification_token, get_active_verification_token_by_user_id
+from app.infrastructure.email import send_verification_email
+
 
 async def register(user_email: str, password: str, db: AsyncSession):
-    if await check_email_exists(user_email, db):
-        raise EmailAlreadyExistsException()
-    hashed_password = hash_password(password)
-    user = await insert_user(user_email, hashed_password, db)
-    raw_validation_token, validation_token_hash = generate_verification_token()
-    await insert_verification_token(user, validation_token_hash, db)
-    # TODO: send email
+    user = await get_user_by_email(user_email, db)
+    if user is not None:
+        if user.is_verified or await get_active_verification_token_by_user_id(user.id, db):
+            raise EmailAlreadyExistsException()
+    if user is None:
+        hashed_password = hash_password(password)
+        user = await insert_user(user_email, hashed_password, db)
+    raw_verification_token, verification_token_hash = generate_verification_token()
+    await insert_verification_token(user, verification_token_hash, db)
+    verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
+    await send_verification_email(user.email, verify_url)
     await db.commit()
     
     return user
@@ -69,3 +75,11 @@ async def logout_all(token: str, db:AsyncSession)->None:
         raise InvalidAccessTokenException()
     await delete_all_user_tokens(user_id, db)
     await db.commit()
+
+async def verify_email(token: str, db: AsyncSession)->None:
+    #hash token
+    #find in db
+    #check if used/expired
+    #if not mark as used
+    #mark user verified
+    #commit 
