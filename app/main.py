@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,7 +21,7 @@ async def health():
 async def health_db(db: AsyncSession = Depends(get_db)):
     try:
         await db.execute(text("SELECT 1"))
-        return {"status": "ok, baza de date functioneaza corect"}
-    except Exception as e:
-        return {"status": "error", "details": str(e)}
+        return JSONResponse(status_code=200, content={"status":"ok"})
+    except Exception:
+        return JSONResponse(status_code=500, content={"status":"error", "details":"db unavailable"})
     
