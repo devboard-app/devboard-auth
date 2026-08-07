@@ -10,6 +10,8 @@ class UserInactiveException(Exception):
     pass
 class UserNotVerifiedException(Exception):
     pass
+class UserAlreadyVerifiedException(Exception):
+    pass
 
 ##TOKEN
 class InvalidTokenException(Exception):

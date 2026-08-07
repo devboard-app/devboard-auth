@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -30,3 +30,10 @@ async def get_active_verification_token_by_user_id(user_id: uuid.UUID, db: Async
 async def mark_verification_token_used(verification_token: VerificationToken, db: AsyncSession)-> None:
     verification_token.used = True
     await db.flush()
+
+async def invalidate_user_verification_tokens(user_id: uuid.UUID, db: AsyncSession) ->None:
+    try:
+        await db.execute(update(VerificationToken).where(VerificationToken.user_id == user_id).where(VerificationToken.used == False).values(used=True))
+    except Exception:
+        await db.rollback()
+        raise UnexpectedException()

@@ -34,3 +34,9 @@ class LogoutRequest(BaseModel):
 
 class VerifyEmailResponse(BaseModel):
     message: str="Email verified successfully"
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+class ResendVerificationResponse(BaseModel):
+    message: str = "Email resent, please check your inbox"

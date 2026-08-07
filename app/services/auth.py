@@ -12,6 +12,7 @@ from app.exceptions import (
     InvalidCredentialsException,
     InvalidTokenException,
     TokenExpiredException,
+    UserAlreadyVerifiedException,
     UserInactiveException,
     UserNotVerifiedException,
 )
@@ -30,9 +31,9 @@ from app.repositories.user import (
     mark_user_verified,
 )
 from app.repositories.verification_token import (
-    get_active_verification_token_by_user_id,
     get_verification_token_by_hash,
     insert_verification_token,
+    invalidate_user_verification_tokens,
     mark_verification_token_used,
 )
 from app.services.jwt import (
@@ -48,11 +49,9 @@ from app.services.password import hash_password, verify_password
 async def register(user_email: str, password: str, db: AsyncSession):
     user = await get_user_by_email(user_email, db)
     if user is not None:
-        if user.is_verified or await get_active_verification_token_by_user_id(user.id, db):
-            raise EmailAlreadyExistsException()
-    if user is None:
-        hashed_password = hash_password(password)
-        user = await insert_user(user_email, hashed_password, db)
+        raise EmailAlreadyExistsException()
+    hashed_password = hash_password(password)
+    user = await insert_user(user_email, hashed_password, db)
     raw_verification_token, verification_token_hash = generate_verification_token()
     await insert_verification_token(user, verification_token_hash, db)
     verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
@@ -120,5 +119,18 @@ async def verify_email(token: str, db: AsyncSession)->None:
         raise InvalidTokenException()
     await mark_user_verified(user, db)
     await mark_verification_token_used(verification_token, db)
+    await db.commit()
+
+async def resend_verification(user_email: str, db: AsyncSession)-> None:
+    user = await get_user_by_email(user_email, db)
+    if user is None:
+        raise InvalidCredentialsException()
+    if user.is_verified:
+        raise UserAlreadyVerifiedException()
+    raw_verification_token, verification_token_hash = generate_verification_token()
+    await invalidate_user_verification_tokens(user.id, db)
+    await insert_verification_token(user, verification_token_hash, db)
+    verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
+    await send_verification_email(user.email, verify_url)
     await db.commit()
     

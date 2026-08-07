@@ -10,6 +10,7 @@ from app.exceptions import (
     InvalidTokenException,
     TokenExpiredException,
     UnexpectedException,
+    UserAlreadyVerifiedException,
     UserInactiveException,
     UserNotFoundException,
     UserNotVerifiedException,
@@ -40,6 +41,10 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(UserNotVerifiedException)
     async def user_not_verified_handler(request, exc):
         return JSONResponse(status_code=403, content={"detail": "User account is not verified"})
+
+    @app.exception_handler(UserAlreadyVerifiedException)
+    async def user_already_verified(request, exc):
+        return JSONResponse(status_code=403, content={"detail": "User account is already verified"})
 
     @app.exception_handler(InvalidAccessTokenException)
     async def invalid_access_token_handler(request, exc):

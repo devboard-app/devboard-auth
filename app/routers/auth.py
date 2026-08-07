@@ -11,9 +11,12 @@ from app.schemas.auth import (
     RefreshTokenResponse,
     RegisterRequest,
     RegisterResponse,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     VerifyEmailResponse,
 )
 from app.services.auth import login, logout, logout_all, refresh, register
+from app.services.auth import resend_verification as resend
 from app.services.auth import verify_email as verify
 
 router = APIRouter(
@@ -52,3 +55,8 @@ async def logout_all_user(credentials = Depends(oauth2_scheme), db: AsyncSession
 async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
     await verify(token, db)
     return VerifyEmailResponse()
+
+@router.post("/resend-verification", response_model=ResendVerificationResponse, status_code = status.HTTP_200_OK)
+async def resend_verification(request: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
+    await resend(request.email, db)
+    return ResendVerificationResponse()
