@@ -48,7 +48,7 @@ async def logout_user(request: LogoutRequest, db: AsyncSession = Depends(get_db)
 async def logout_all_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     await logout_all(token, db)
 
-@router.post("/verify-email", response_model= VerifyEmailResponse, status_code= status.HTTP_200_OK)
+@router.get("/verify-email", response_model= VerifyEmailResponse, status_code= status.HTTP_200_OK)
 async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
     await verify(token, db)
     return VerifyEmailResponse()
