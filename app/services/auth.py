@@ -55,8 +55,8 @@ async def register(user_email: str, password: str, db: AsyncSession):
     raw_verification_token, verification_token_hash = generate_verification_token()
     await insert_verification_token(user, verification_token_hash, db)
     verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
-    await send_verification_email(user.email, verify_url)
     await db.commit()
+    await send_verification_email(user.email, verify_url)
     
     return user
 
