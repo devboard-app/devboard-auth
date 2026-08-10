@@ -25,6 +25,9 @@ class InvalidAccessTokenException(Exception):
 class EmailServiceException(Exception):
     pass
 
+class CoreServiceException(Exception):
+    pass
+
 ##OTHER
 class UnexpectedException(Exception):
     pass
