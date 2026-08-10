@@ -16,6 +16,7 @@ from app.exceptions import (
     UserInactiveException,
     UserNotVerifiedException,
 )
+from app.infrastructure.core import sync_user_to_core
 from app.infrastructure.email import send_verification_email
 from app.repositories.token import (
     delete_all_user_tokens,
@@ -55,9 +56,10 @@ async def register(user_email: str, password: str, db: AsyncSession):
     raw_verification_token, verification_token_hash = generate_verification_token()
     await insert_verification_token(user, verification_token_hash, db)
     verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
+    await sync_user_to_core(str(user.id), user.email, str(user.role.value))
     await db.commit()
     await send_verification_email(user.email, verify_url)
-    
+
     return user
 
 async def login(user_email: str, password: str, db: AsyncSession):
@@ -73,7 +75,7 @@ async def login(user_email: str, password: str, db: AsyncSession):
 
     await insert_new_refresh_token(user.id, hash_refresh_token, expires_at, db)
     await db.commit()
-    jwt_token = create_access_token(user_id = str(user.id), email= user.email, role=str(user.role))
+    jwt_token = create_access_token(user_id = str(user.id), email= user.email, role=str(user.role.value))
     
     return jwt_token, raw_refresh_token
 
@@ -87,7 +89,7 @@ async def refresh(token: str, db: AsyncSession)-> tuple[str,str]:
 
     await revoke_and_insert_new_refresh_token(old_refresh_token, user.id, new_refresh_token_hash, expires_at, db)
     await db.commit()
-    new_jwt_token = create_access_token(user_id = str(user.id), email=user.email, role=str(user.role))
+    new_jwt_token = create_access_token(user_id = str(user.id), email=user.email, role=str(user.role.value))
     return new_jwt_token, new_raw_refresh_token
 
 async def logout(token: str, db: AsyncSession)->None:

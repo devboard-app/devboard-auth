@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from app.exceptions import (
+    CoreServiceException,
     EmailAlreadyExistsException,
     EmailServiceException,
     InvalidAccessTokenException,
@@ -61,3 +62,7 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(EmailServiceException)
     async def email_service_handler(request, exc):
         return JSONResponse(status_code=502, content={"detail": "Email service is not working"})
+
+    @app.exception_handler(CoreServiceException)
+    async def core_service_handler(request, exc):
+        return JSONResponse(status_code=502, content={"detail": "Core service is not working"})
