@@ -24,7 +24,7 @@ Copy `.env.example` to `.env` and fill in the values.
 | `JWT_SECRET` | Secret key for signing JWTs |
 | `FRONTEND_URL` | Base URL of the frontend (used in verification email links) |
 | `EMAIL_SERVICE_URL` | URL of the devboard-email service |
-| `EMAIL_SERVICE_SECRET_KEY` | Shared secret key for calling devboard-email |
+| `INTERNAL_API_KEY` | Shared secret key for calling devboard-email |
 
 ## Running with Docker
 
