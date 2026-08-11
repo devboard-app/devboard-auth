@@ -5,13 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.exception_handlers import register_exception_handlers
-from app.routers import auth
+from app.routers import auth, internal
 
 app = FastAPI(
     title="Devboard Auth Service",
 )
 register_exception_handlers(app)
 app.include_router(auth.router)
+app.include_router(internal.router)
 
 @app.get("/health")
 async def health():

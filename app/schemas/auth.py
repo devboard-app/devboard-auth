@@ -40,3 +40,6 @@ class ResendVerificationRequest(BaseModel):
 
 class ResendVerificationResponse(BaseModel):
     message: str = "Email resent, please check your inbox"
+
+class UpdateUserStatusRequest(BaseModel):
+    is_active: bool

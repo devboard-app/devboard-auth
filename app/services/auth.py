@@ -14,6 +14,7 @@ from app.exceptions import (
     TokenExpiredException,
     UserAlreadyVerifiedException,
     UserInactiveException,
+    UserNotFoundException,
     UserNotVerifiedException,
 )
 from app.infrastructure.core import sync_user_to_core
@@ -30,6 +31,9 @@ from app.repositories.user import (
     get_user_by_id,
     insert_user,
     mark_user_verified,
+)
+from app.repositories.user import (
+    update_user_status as update_user_status_repo,
 )
 from app.repositories.verification_token import (
     get_verification_token_by_hash,
@@ -135,4 +139,10 @@ async def resend_verification(user_email: str, db: AsyncSession)-> None:
     verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
     await send_verification_email(user.email, verify_url)
     await db.commit()
-    
+
+async def update_user_status(user_id: uuid.UUID, is_active: bool, db: AsyncSession):
+    user = await get_user_by_id(user_id, db)
+    if user is None:
+        raise UserNotFoundException
+    await update_user_status_repo(user_id, is_active, db)
+    await db.commit()
