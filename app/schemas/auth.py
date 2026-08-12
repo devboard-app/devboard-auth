@@ -1,7 +1,6 @@
-
-
-
 from pydantic import BaseModel, EmailStr, Field
+
+from app.models.user import UserRole
 
 
 class RegisterRequest(BaseModel):
@@ -46,3 +45,6 @@ class ResendVerificationResponse(BaseModel):
 
 class UpdateUserStatusRequest(BaseModel):
     is_active: bool
+
+class UpdateUserRoleRequest(BaseModel):
+    role: UserRole

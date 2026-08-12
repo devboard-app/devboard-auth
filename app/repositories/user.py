@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.exceptions import EmailAlreadyExistsException, UnexpectedException
-from app.models.user import User
+from app.models.user import User, UserRole
 
 
 async def insert_user(user_email: str, user_hashed_password: str, db: AsyncSession)-> User:
@@ -47,4 +47,8 @@ async def hard_delete_user_by_id(user_id: uuid.UUID, db: AsyncSession)->None:
     user = await db.get(User, user_id)
     if user:
         await db.delete(user)
+    await db.flush()
+    
+async def update_user_role(user_id: uuid.UUID, role: UserRole, db: AsyncSession):
+    await db.execute(update(User).where(User.id==user_id).values(role=role))
     await db.flush()

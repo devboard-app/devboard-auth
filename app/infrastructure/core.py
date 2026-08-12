@@ -13,3 +13,4 @@ async def sync_user_to_core(user_id: str, email: str, role: str)->None:
     response = await http_state.http_client.post(settings.CORE_SERVICE_URL, json=payload, headers=headers)
     if response.status_code != 201:
         raise CoreServiceException()
+

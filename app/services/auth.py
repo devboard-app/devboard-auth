@@ -18,6 +18,7 @@ from app.exceptions import (
 )
 from app.infrastructure.core import sync_user_to_core
 from app.infrastructure.email import send_verification_email
+from app.models.user import UserRole
 from app.repositories.token import (
     get_refresh_token_by_hash,
     insert_new_refresh_token,
@@ -31,6 +32,9 @@ from app.repositories.user import (
     hard_delete_user_by_id,
     insert_user,
     mark_user_verified,
+)
+from app.repositories.user import (
+    update_user_role as update_user_role_repo,
 )
 from app.repositories.user import (
     update_user_status as update_user_status_repo,
@@ -152,4 +156,11 @@ async def update_user_status(user_id: uuid.UUID, is_active: bool, db: AsyncSessi
     if not is_active:
         await revoke_all_user_tokens(user_id, db)
     await update_user_status_repo(user_id, is_active, db)
+    await db.commit()
+
+async def update_user_role(user_id: uuid.UUID, role: UserRole, db: AsyncSession):
+    user = await get_user_by_id(user_id, db)
+    if user is None:
+        raise UserNotFoundException()
+    await update_user_role_repo(user_id, role, db)
     await db.commit()
