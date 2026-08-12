@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.exceptions import (
     EmailAlreadyExistsException,
-    InvalidAccessTokenException,
     InvalidCredentialsException,
     InvalidTokenException,
     TokenExpiredException,
@@ -20,9 +19,9 @@ from app.exceptions import (
 from app.infrastructure.core import sync_user_to_core
 from app.infrastructure.email import send_verification_email
 from app.repositories.token import (
-    delete_all_user_tokens,
     get_refresh_token_by_hash,
     insert_new_refresh_token,
+    revoke_all_user_tokens,
     revoke_and_insert_new_refresh_token,
     revoke_refresh_token,
 )
@@ -43,7 +42,6 @@ from app.repositories.verification_token import (
 )
 from app.services.jwt import (
     create_access_token,
-    decode_access_token,
     generate_refresh_token,
     generate_verification_token,
     validate_refresh_token,
@@ -105,12 +103,11 @@ async def logout(token: str, db: AsyncSession)->None:
     await db.commit()
 
 async def logout_all(token: str, db:AsyncSession)->None:
-    try:
-        payload = decode_access_token(token)
-        user_id = uuid.UUID(payload["sub"])
-    except ValueError:
-        raise InvalidAccessTokenException()
-    await delete_all_user_tokens(user_id, db)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    refresh_token = await get_refresh_token_by_hash(token_hash, db)
+    if refresh_token is None:
+        raise InvalidTokenException()
+    await revoke_all_user_tokens(refresh_token.user_id, db)
     await db.commit()
 
 async def verify_email(token: str, db: AsyncSession)->None:
