@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,4 +41,8 @@ async def mark_user_verified(user: User, db: AsyncSession)->None:
 
 async def update_user_status(user_id: uuid.UUID, is_active: bool,  db: AsyncSession)->None:
     await db.execute(update(User).where(User.id==user_id).values(is_active=is_active))
+    await db.flush()
+
+async def hard_delete_user_by_id(user_id: uuid.UUID, db: AsyncSession)->None:
+    await db.execute(delete(User).where(User.id==user_id))
     await db.flush()
