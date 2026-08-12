@@ -12,7 +12,6 @@ from app.exceptions import (
     InvalidCredentialsException,
     InvalidTokenException,
     TokenExpiredException,
-    UserAlreadyVerifiedException,
     UserInactiveException,
     UserNotFoundException,
     UserNotVerifiedException,
@@ -136,9 +135,9 @@ async def verify_email(token: str, db: AsyncSession)->None:
 async def resend_verification(user_email: str, db: AsyncSession)-> None:
     user = await get_user_by_email(user_email, db)
     if user is None:
-        raise InvalidCredentialsException()
+        return
     if user.is_verified:
-        raise UserAlreadyVerifiedException()
+        return
     raw_verification_token, verification_token_hash = generate_verification_token()
     await invalidate_user_verification_tokens(user.id, db)
     await insert_verification_token(user, verification_token_hash, db)
