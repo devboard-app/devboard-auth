@@ -93,6 +93,8 @@ async def refresh(token: str, db: AsyncSession)-> tuple[str,str]:
     user = await get_user_by_id(old_refresh_token.user_id, db)
     if user is None:
         raise InvalidTokenException()
+    if not user.is_active:
+        raise UserInactiveException()
     new_raw_refresh_token, new_refresh_token_hash = generate_refresh_token()
     expires_at = datetime.now(timezone.utc) + timedelta(days = settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
@@ -147,6 +149,8 @@ async def resend_verification(user_email: str, db: AsyncSession)-> None:
 async def update_user_status(user_id: uuid.UUID, is_active: bool, db: AsyncSession):
     user = await get_user_by_id(user_id, db)
     if user is None:
-        raise UserNotFoundException
+        raise UserNotFoundException()
+    if not is_active:
+        await revoke_all_user_tokens(user_id, db)
     await update_user_status_repo(user_id, is_active, db)
     await db.commit()
