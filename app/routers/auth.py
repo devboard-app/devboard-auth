@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import oauth2_scheme
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
+    LogoutAllRequest,
     LogoutRequest,
     RefreshTokenRequest,
     RefreshTokenResponse,
@@ -48,8 +48,8 @@ async def logout_user(request: LogoutRequest, db: AsyncSession = Depends(get_db)
 
 
 @router.post("/logout-all", status_code= status.HTTP_204_NO_CONTENT)
-async def logout_all_user(credentials = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    await logout_all(credentials.credentials, db)
+async def logout_all_user(request: LogoutAllRequest, db: AsyncSession = Depends(get_db)):
+    await logout_all(request.refresh_token, db)
 
 @router.get("/verify-email", response_model= VerifyEmailResponse, status_code= status.HTTP_200_OK)
 async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):

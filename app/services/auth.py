@@ -7,12 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.exceptions import (
+    CoreServiceException,
     EmailAlreadyExistsException,
-    InvalidAccessTokenException,
     InvalidCredentialsException,
     InvalidTokenException,
     TokenExpiredException,
-    UserAlreadyVerifiedException,
     UserInactiveException,
     UserNotFoundException,
     UserNotVerifiedException,
@@ -20,15 +19,16 @@ from app.exceptions import (
 from app.infrastructure.core import sync_user_to_core
 from app.infrastructure.email import send_verification_email
 from app.repositories.token import (
-    delete_all_user_tokens,
     get_refresh_token_by_hash,
     insert_new_refresh_token,
+    revoke_all_user_tokens,
     revoke_and_insert_new_refresh_token,
     revoke_refresh_token,
 )
 from app.repositories.user import (
     get_user_by_email,
     get_user_by_id,
+    hard_delete_user_by_id,
     insert_user,
     mark_user_verified,
 )
@@ -43,7 +43,6 @@ from app.repositories.verification_token import (
 )
 from app.services.jwt import (
     create_access_token,
-    decode_access_token,
     generate_refresh_token,
     generate_verification_token,
     validate_refresh_token,
@@ -59,9 +58,14 @@ async def register(user_email: str, password: str, db: AsyncSession):
     user = await insert_user(user_email, hashed_password, db)
     raw_verification_token, verification_token_hash = generate_verification_token()
     await insert_verification_token(user, verification_token_hash, db)
-    verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
-    await sync_user_to_core(str(user.id), user.email, str(user.role.value))
     await db.commit()
+    verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
+    try:
+        await sync_user_to_core(str(user.id), user.email, str(user.role.value))
+    except Exception:
+        await hard_delete_user_by_id(user.id, db)
+        await db.commit()
+        raise CoreServiceException()
     await send_verification_email(user.email, verify_url)
 
     return user
@@ -88,6 +92,8 @@ async def refresh(token: str, db: AsyncSession)-> tuple[str,str]:
     user = await get_user_by_id(old_refresh_token.user_id, db)
     if user is None:
         raise InvalidTokenException()
+    if not user.is_active:
+        raise UserInactiveException()
     new_raw_refresh_token, new_refresh_token_hash = generate_refresh_token()
     expires_at = datetime.now(timezone.utc) + timedelta(days = settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
@@ -105,12 +111,11 @@ async def logout(token: str, db: AsyncSession)->None:
     await db.commit()
 
 async def logout_all(token: str, db:AsyncSession)->None:
-    try:
-        payload = decode_access_token(token)
-        user_id = uuid.UUID(payload["sub"])
-    except ValueError:
-        raise InvalidAccessTokenException()
-    await delete_all_user_tokens(user_id, db)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    refresh_token = await get_refresh_token_by_hash(token_hash, db)
+    if refresh_token is None:
+        raise InvalidTokenException()
+    await revoke_all_user_tokens(refresh_token.user_id, db)
     await db.commit()
 
 async def verify_email(token: str, db: AsyncSession)->None:
@@ -130,9 +135,9 @@ async def verify_email(token: str, db: AsyncSession)->None:
 async def resend_verification(user_email: str, db: AsyncSession)-> None:
     user = await get_user_by_email(user_email, db)
     if user is None:
-        raise InvalidCredentialsException()
+        return
     if user.is_verified:
-        raise UserAlreadyVerifiedException()
+        return
     raw_verification_token, verification_token_hash = generate_verification_token()
     await invalidate_user_verification_tokens(user.id, db)
     await insert_verification_token(user, verification_token_hash, db)
@@ -143,6 +148,8 @@ async def resend_verification(user_email: str, db: AsyncSession)-> None:
 async def update_user_status(user_id: uuid.UUID, is_active: bool, db: AsyncSession):
     user = await get_user_by_id(user_id, db)
     if user is None:
-        raise UserNotFoundException
+        raise UserNotFoundException()
+    if not is_active:
+        await revoke_all_user_tokens(user_id, db)
     await update_user_status_repo(user_id, is_active, db)
     await db.commit()

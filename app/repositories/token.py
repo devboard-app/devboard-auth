@@ -33,7 +33,7 @@ async def insert_new_refresh_token(user_id: uuid.UUID, token_hash: str, expires_
         await db.rollback()
         raise UnexpectedException()
 
-async def delete_all_user_tokens(user_id: uuid.UUID, db: AsyncSession) -> None:
+async def revoke_all_user_tokens(user_id: uuid.UUID, db: AsyncSession) -> None:
     try:
         await db.execute(update(RefreshToken).where(RefreshToken.user_id==user_id).values(revoked=True))
         await db.flush()
