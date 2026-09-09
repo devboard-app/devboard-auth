@@ -9,3 +9,7 @@ dist/
 .mypy_cache/
 .ruff_cache
 .vscode
+
+# Local-only unit tests (not committed by choice)
+tests/
+.pytest_cache/
