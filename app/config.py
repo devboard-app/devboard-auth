@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 5
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     VERIFICATION_TOKEN_EXPIRE_DAYS: int = 1
+    REDIS_URL: str
 
 
 settings = Settings()  # type: ignore

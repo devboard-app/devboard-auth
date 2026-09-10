@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.exceptions import RateLimiterUnavailableException
+from app.infrastructure.rate_limit import rate_limit
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
@@ -26,13 +29,20 @@ router = APIRouter(
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-async def register_user( request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register_user( request: RegisterRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    try:
+        await rate_limit(10, 3600, f"register:{client_ip}") # 10 times / 1h
+    except RedisError:
+        raise RateLimiterUnavailableException()
+
     await register(request.email, request.password,db)
     return RegisterResponse()
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
-async def login_user(request: LoginRequest, db: AsyncSession = Depends(get_db)):
-    jwt_token, raw_refresh_token = await login(request.email, request.password, db)
+async def login_user(request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    jwt_token, raw_refresh_token = await login(request.email, request.password, db, client_ip)
     return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token)
 
 
@@ -58,5 +68,9 @@ async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_d
 
 @router.post("/resend-verification", response_model=ResendVerificationResponse, status_code = status.HTTP_200_OK)
 async def resend_verification(request: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        await rate_limit(3, 3600, f"resend_verification:{request.email}")
+    except RedisError:
+        raise RateLimiterUnavailableException()
     await resend(request.email, db)
     return ResendVerificationResponse()

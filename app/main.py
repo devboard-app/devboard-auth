@@ -2,21 +2,23 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
-from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import app.infrastructure.http_client as http_state
 from app.database import get_db
 from app.exception_handlers import register_exception_handlers
+from app.infrastructure.http_client import close_http_client, open_http_client
+from app.infrastructure.redis_client import close_redis_client, open_redis_client
 from app.routers import auth, internal
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    http_state.http_client = AsyncClient()
+    await open_http_client()
+    await open_redis_client()
     yield
-    await http_state.http_client.aclose()
+    await close_http_client()
+    await close_redis_client()
 
 app = FastAPI(
     title="Devboard Auth Service",

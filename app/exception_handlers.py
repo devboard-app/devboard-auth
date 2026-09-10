@@ -9,6 +9,8 @@ from app.exceptions import (
     InvalidAccessTokenException,
     InvalidCredentialsException,
     InvalidTokenException,
+    RateLimiterUnavailableException,
+    RateLimitExceededException,
     TokenExpiredException,
     UnexpectedException,
     UserAlreadyVerifiedException,
@@ -66,3 +68,9 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(CoreServiceException)
     async def core_service_handler(request, exc):
         return JSONResponse(status_code=502, content={"detail": "Core service is not working"})
+    @app.exception_handler(RateLimitExceededException)
+    async def rate_limit_exceeded_handler(request, exc):
+        return JSONResponse(status_code=429, content={"detail": "Too many requests"})
+    @app.exception_handler(RateLimiterUnavailableException)
+    async def rate_limiter_unavailable_handler(request, exc):
+        return JSONResponse(status_code=503, content={"detail": "Rate limiter service is not working"})
