@@ -24,6 +24,8 @@ class InvalidAccessTokenException(Exception):
 ##RATE-LIMIT
 class RateLimitExceededException(Exception):
     pass
+class RateLimiterUnavailableException(Exception):
+    pass
 ##EMAIL
 class EmailServiceException(Exception):
     pass
