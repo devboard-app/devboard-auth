@@ -3,6 +3,7 @@ import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -18,6 +19,7 @@ from app.exceptions import (
 )
 from app.infrastructure.core import sync_user_to_core
 from app.infrastructure.email import send_verification_email
+from app.infrastructure.rate_limit import clear_rate_limit, rate_limit
 from app.models.user import UserRole
 from app.repositories.token import (
     get_refresh_token_by_hash,
@@ -74,9 +76,14 @@ async def register(user_email: str, password: str, db: AsyncSession):
 
     return user
 
-async def login(user_email: str, password: str, db: AsyncSession):
+async def login(user_email: str, password: str, db: AsyncSession, client_ip: str):
     user = await get_user_by_email(user_email, db)
     if user is None or not verify_password(password, user.hashed_password):
+        try:
+            await rate_limit(5, 900, f"login_ip:{client_ip}")
+            await rate_limit(5, 900, f"login_email:{user_email}")
+        except RedisError:
+            pass
         raise InvalidCredentialsException()
     if not user.is_active:
         raise UserInactiveException()
@@ -88,7 +95,14 @@ async def login(user_email: str, password: str, db: AsyncSession):
     await insert_new_refresh_token(user.id, hash_refresh_token, expires_at, db)
     await db.commit()
     jwt_token = create_access_token(user_id = str(user.id), email= user.email, role=str(user.role.value))
-    
+
+    #rate limit clear on success
+    try:
+        await clear_rate_limit(f"login_ip:{client_ip}")
+        await clear_rate_limit(f"login_email:{user_email}")
+    except RedisError:
+        pass
+
     return jwt_token, raw_refresh_token
 
 async def refresh(token: str, db: AsyncSession)-> tuple[str,str]:
