@@ -21,6 +21,9 @@ class TokenExpiredException(Exception):
 class InvalidAccessTokenException(Exception):
     pass
 
+##RATE-LIMIT
+class RateLimitExceededException(Exception):
+    pass
 ##EMAIL
 class EmailServiceException(Exception):
     pass
@@ -31,3 +34,4 @@ class CoreServiceException(Exception):
 ##OTHER
 class UnexpectedException(Exception):
     pass
+
