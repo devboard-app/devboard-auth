@@ -52,3 +52,7 @@ async def hard_delete_user_by_id(user_id: uuid.UUID, db: AsyncSession)->None:
 async def update_user_role(user_id: uuid.UUID, role: UserRole, db: AsyncSession):
     await db.execute(update(User).where(User.id==user_id).values(role=role))
     await db.flush()
+
+async def update_user_password(user_id: uuid.UUID, hashed_password: str, db: AsyncSession) -> None:
+    await db.execute(update(User).where(User.id==user_id).values(hashed_password=hashed_password))
+    await db.flush()

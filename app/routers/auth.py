@@ -6,6 +6,8 @@ from app.database import get_db
 from app.exceptions import RateLimiterUnavailableException
 from app.infrastructure.rate_limit import rate_limit
 from app.schemas.auth import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     LoginResponse,
     LogoutAllRequest,
@@ -16,10 +18,14 @@ from app.schemas.auth import (
     RegisterResponse,
     ResendVerificationRequest,
     ResendVerificationResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     VerifyEmailResponse,
 )
+from app.services.auth import forgot_password as forgot_pwd
 from app.services.auth import login, logout, logout_all, refresh, register
 from app.services.auth import resend_verification as resend
+from app.services.auth import reset_password as reset_pwd
 from app.services.auth import verify_email as verify
 
 router = APIRouter(
@@ -74,3 +80,17 @@ async def resend_verification(request: ResendVerificationRequest, db: AsyncSessi
         raise RateLimiterUnavailableException()
     await resend(request.email, db)
     return ResendVerificationResponse()
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
+async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        await rate_limit(3, 3600, f"forgot_password:{request.email}")
+    except RedisError:
+        raise RateLimiterUnavailableException()
+    await forgot_pwd(request.email, db)
+    return ForgotPasswordResponse()
+
+@router.post("/reset-password", response_model=ResetPasswordResponse, status_code=status.HTTP_200_OK)
+async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    await reset_pwd(request.token, request.password, db)
+    return ResetPasswordResponse()

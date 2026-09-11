@@ -49,4 +49,8 @@ def generate_verification_token() -> tuple[str, str]:
     verification_token_hash = hashlib.sha256(raw_verification_token.encode()).hexdigest()
     return raw_verification_token, verification_token_hash
 
+def generate_password_reset_token() -> tuple[str, str]:
+    raw_password_reset_token = secrets.token_urlsafe(32)
+    password_reset_token_hash = hashlib.sha256(raw_password_reset_token.encode()).hexdigest()
+    return raw_password_reset_token, password_reset_token_hash
 

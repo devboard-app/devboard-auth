@@ -5,7 +5,7 @@ client: httpx.AsyncClient | None = None
 
 async def open_http_client() -> None:
     global client
-    client = httpx.AsyncClient(timeout=3.0)
+    client = httpx.AsyncClient(timeout=10.0)
 
 
 async def close_http_client() -> None:
