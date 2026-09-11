@@ -43,6 +43,16 @@ class ResendVerificationRequest(BaseModel):
 class ResendVerificationResponse(BaseModel):
     message: str = "Email resent, please check your inbox"
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+class ForgotPasswordResponse(BaseModel):
+    message: str = "If that email exists, a reset link has ben sent."
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str = Field(min_length=8, max_length=128)
+class ResetPasswordResponse(BaseModel):
+    message: str = "Password reset successfully"
+
 class UpdateUserStatusRequest(BaseModel):
     is_active: bool
 
