@@ -84,13 +84,13 @@ async def register(user_email: str, password: str, db: AsyncSession):
     return user
 
 async def login(user_email: str, password: str, db: AsyncSession, client_ip: str):
+    try:
+        await rate_limit(5, 900, f"login_ip:{client_ip}")
+        await rate_limit(5, 900, f"login_email:{user_email}")
+    except RedisError:
+        pass
     user = await get_user_by_email(user_email, db)
     if user is None or not verify_password(password, user.hashed_password):
-        try:
-            await rate_limit(5, 900, f"login_ip:{client_ip}")
-            await rate_limit(5, 900, f"login_email:{user_email}")
-        except RedisError:
-            pass
         raise InvalidCredentialsException()
     if not user.is_active:
         raise UserInactiveException()
