@@ -1,17 +1,20 @@
-from pydantic import BaseModel, EmailStr, Field
+from typing import Annotated
+
+from pydantic import AfterValidator, BaseModel, EmailStr, Field
 
 from app.models.user import UserRole
 
+NormalizedEmail = Annotated[EmailStr, AfterValidator(str.lower)]
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: NormalizedEmail
     password: str = Field(min_length=8, max_length=128)
 
 class RegisterResponse(BaseModel):
     message: str = "Check your email to verify your account."
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: NormalizedEmail
     password: str = Field(min_length=8, max_length=128)
 
 class LoginResponse(BaseModel):
@@ -38,13 +41,13 @@ class VerifyEmailResponse(BaseModel):
     message: str="Email verified successfully"
 
 class ResendVerificationRequest(BaseModel):
-    email: EmailStr
+    email: NormalizedEmail
 
 class ResendVerificationResponse(BaseModel):
     message: str = "Email resent, please check your inbox"
 
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    email: NormalizedEmail
 class ForgotPasswordResponse(BaseModel):
     message: str = "If that email exists, a reset link has ben sent."
 class ResetPasswordRequest(BaseModel):
