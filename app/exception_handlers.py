@@ -1,4 +1,5 @@
-# app/exception_handlers.py
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -20,6 +21,7 @@ from app.exceptions import (
     UserNotVerifiedException,
 )
 
+logger = logging.getLogger(__name__)
 
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(EmailAlreadyExistsException)
@@ -89,3 +91,9 @@ def register_exception_handlers(app: FastAPI):
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request, exc):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail, "errors": None})
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request, exc):
+        logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+        return JSONResponse(status_code=500, content={"detail": "Unexpected error occurred", "errors": None})
+    
