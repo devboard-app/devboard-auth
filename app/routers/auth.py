@@ -34,7 +34,7 @@ router = APIRouter(
 )
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register/", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_user( request: RegisterRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
     client_ip = http_request.client.host if http_request.client else "unknown"
     try:
@@ -45,34 +45,34 @@ async def register_user( request: RegisterRequest, http_request: Request, db: As
     await register(request.email, request.password,db)
     return RegisterResponse()
 
-@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+@router.post("/login/", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login_user(request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
     client_ip = http_request.client.host if http_request.client else "unknown"
     jwt_token, raw_refresh_token = await login(request.email, request.password, db, client_ip)
     return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token)
 
 
-@router.post("/refresh-token", response_model=RefreshTokenResponse, status_code=status.HTTP_200_OK)
+@router.post("/refresh-token/", response_model=RefreshTokenResponse, status_code=status.HTTP_200_OK)
 async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
     new_jwt_token, new_raw_refresh_token= await refresh(request.refresh_token, db)
     return RefreshTokenResponse(access_token = new_jwt_token, refresh_token=new_raw_refresh_token)
 
 
-@router.post("/logout", status_code = status.HTTP_204_NO_CONTENT)
+@router.post("/logout/", status_code = status.HTTP_204_NO_CONTENT)
 async def logout_user(request: LogoutRequest, db: AsyncSession = Depends(get_db)):
     await logout(request.refresh_token, db)
 
 
-@router.post("/logout-all", status_code= status.HTTP_204_NO_CONTENT)
+@router.post("/logout-all/", status_code= status.HTTP_204_NO_CONTENT)
 async def logout_all_user(request: LogoutAllRequest, db: AsyncSession = Depends(get_db)):
     await logout_all(request.refresh_token, db)
 
-@router.get("/verify-email", response_model= VerifyEmailResponse, status_code= status.HTTP_200_OK)
+@router.get("/verify-email/", response_model= VerifyEmailResponse, status_code= status.HTTP_200_OK)
 async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
     await verify(token, db)
     return VerifyEmailResponse()
 
-@router.post("/resend-verification", response_model=ResendVerificationResponse, status_code = status.HTTP_200_OK)
+@router.post("/resend-verification/", response_model=ResendVerificationResponse, status_code = status.HTTP_200_OK)
 async def resend_verification(request: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
     try:
         await rate_limit(3, 3600, f"resend_verification:{request.email}")
@@ -81,7 +81,7 @@ async def resend_verification(request: ResendVerificationRequest, db: AsyncSessi
     await resend(request.email, db)
     return ResendVerificationResponse()
 
-@router.post("/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
+@router.post("/forgot-password/", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
 async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
     try:
         await rate_limit(3, 3600, f"forgot_password:{request.email}")
@@ -90,7 +90,7 @@ async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Dep
     await forgot_pwd(request.email, db)
     return ForgotPasswordResponse()
 
-@router.post("/reset-password", response_model=ResetPasswordResponse, status_code=status.HTTP_200_OK)
+@router.post("/reset-password/", response_model=ResetPasswordResponse, status_code=status.HTTP_200_OK)
 async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     await reset_pwd(request.token, request.password, db)
     return ResetPasswordResponse()
