@@ -19,7 +19,7 @@ from app.exceptions import (
 )
 from app.infrastructure.core import sync_user_to_core
 from app.infrastructure.email import send_password_reset_email, send_verification_email
-from app.infrastructure.rate_limit import clear_rate_limit, rate_limit
+from app.infrastructure.rate_limit import clear_rate_limit
 from app.models.user import UserRole
 from app.repositories.password_reset_token import (
     get_password_reset_token_by_hash,
@@ -84,11 +84,6 @@ async def register(user_email: str, password: str, db: AsyncSession):
     return user
 
 async def login(user_email: str, password: str, db: AsyncSession, client_ip: str):
-    try:
-        await rate_limit(5, 900, f"login_ip:{client_ip}")
-        await rate_limit(5, 900, f"login_email:{user_email}")
-    except RedisError:
-        pass
     user = await get_user_by_email(user_email, db)
     if user is None or not verify_password(password, user.hashed_password):
         raise InvalidCredentialsException()

@@ -48,6 +48,11 @@ async def register_user( request: RegisterRequest, http_request: Request, db: As
 @router.post("/login/", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login_user(request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
     client_ip = http_request.client.host if http_request.client else "unknown"
+    try:
+        await rate_limit(5, 900, f"login_ip:{client_ip}")
+        await rate_limit(5, 900, f"login_email:{request.email}")
+    except RedisError:
+        raise RateLimiterUnavailableException()
     jwt_token, raw_refresh_token = await login(request.email, request.password, db, client_ip)
     return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token)
 
@@ -73,18 +78,22 @@ async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_d
     return VerifyEmailResponse()
 
 @router.post("/resend-verification/", response_model=ResendVerificationResponse, status_code = status.HTTP_200_OK)
-async def resend_verification(request: ResendVerificationRequest, db: AsyncSession = Depends(get_db)):
+async def resend_verification(request: ResendVerificationRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+    client_ip = http_request.client.host if http_request.client else "unknown"
     try:
-        await rate_limit(3, 3600, f"resend_verification:{request.email}")
+        await rate_limit(3, 3600, f"resend_verification_ip:{client_ip}")
+        await rate_limit(10, 3600, f"resend_verification:{request.email}")
     except RedisError:
         raise RateLimiterUnavailableException()
     await resend(request.email, db)
     return ResendVerificationResponse()
 
 @router.post("/forgot-password/", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
-async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+async def forgot_password(request: ForgotPasswordRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+    client_ip = http_request.client.host if http_request.client else "unknown"
     try:
-        await rate_limit(3, 3600, f"forgot_password:{request.email}")
+        await rate_limit(3, 3600, f"forgot_password_ip:{client_ip}")
+        await rate_limit(10, 3600, f"forgot_password:{request.email}")
     except RedisError:
         raise RateLimiterUnavailableException()
     await forgot_pwd(request.email, db)
