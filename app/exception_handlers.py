@@ -84,8 +84,11 @@ def register_exception_handlers(app: FastAPI):
     async def validation_error_handler(request, exc):
         errors: dict[str, list[str]] = {}
         for error in exc.errors():
-            field = str(error["loc"][-1]) if error["loc"] else "non_field_errors"
+            field_parts = [str(p) for p in error["loc"] if not isinstance(p, int)]
+            field = field_parts[-1] if field_parts else "non_field_errors"
             errors.setdefault(field, []).append(error["msg"])
+        if not errors:
+            return JSONResponse(status_code=422, content={"detail": "Validation failed", "errors": errors})
         return JSONResponse(status_code=422, content={"detail": next(iter(errors.values()))[0], "errors": errors})
 
     @app.exception_handler(HTTPException)
