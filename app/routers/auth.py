@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.exceptions import RateLimiterUnavailableException
 from app.infrastructure.client_ip import get_client_ip
@@ -55,13 +56,13 @@ async def login_user(request: LoginRequest, http_request: Request, db: AsyncSess
     except RedisError:
         raise RateLimiterUnavailableException()
     jwt_token, raw_refresh_token = await login(request.email, request.password, db, client_ip)
-    return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token)
+    return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token, expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
 
 
 @router.post("/refresh-token/", response_model=RefreshTokenResponse, status_code=status.HTTP_200_OK)
 async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
     new_jwt_token, new_raw_refresh_token= await refresh(request.refresh_token, db)
-    return RefreshTokenResponse(access_token = new_jwt_token, refresh_token=new_raw_refresh_token)
+    return RefreshTokenResponse(access_token = new_jwt_token, refresh_token=new_raw_refresh_token, expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
 
 
 @router.post("/logout/", status_code = status.HTTP_204_NO_CONTENT)
