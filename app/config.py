@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     VERIFICATION_TOKEN_EXPIRE_DAYS: int = 1
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 60
     REDIS_URL: str
+    TRUSTED_PROXY_IPS: str = ""
 
+    @property
+    def trusted_proxy_ips_set(self) -> set[str]:
+        return {ip.strip() for ip in self.TRUSTED_PROXY_IPS.split(",") if ip.strip()}
 
 settings = Settings()  # type: ignore
