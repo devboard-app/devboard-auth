@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.exceptions import RateLimiterUnavailableException
+from app.infrastructure.client_ip import get_client_ip
 from app.infrastructure.rate_limit import rate_limit
 from app.schemas.auth import (
     ForgotPasswordRequest,
@@ -36,7 +37,7 @@ router = APIRouter(
 
 @router.post("/register/", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_user( request: RegisterRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = get_client_ip(http_request)
     try:
         await rate_limit(10, 3600, f"register:{client_ip}") # 10 times / 1h
     except RedisError:
@@ -47,7 +48,7 @@ async def register_user( request: RegisterRequest, http_request: Request, db: As
 
 @router.post("/login/", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login_user(request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = get_client_ip(http_request)
     try:
         await rate_limit(5, 900, f"login_ip:{client_ip}")
         await rate_limit(5, 900, f"login_email:{request.email}")
@@ -79,7 +80,7 @@ async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_d
 
 @router.post("/resend-verification/", response_model=ResendVerificationResponse, status_code = status.HTTP_200_OK)
 async def resend_verification(request: ResendVerificationRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = get_client_ip(http_request)
     try:
         await rate_limit(3, 3600, f"resend_verification_ip:{client_ip}")
         await rate_limit(10, 3600, f"resend_verification:{request.email}")
@@ -90,7 +91,7 @@ async def resend_verification(request: ResendVerificationRequest, http_request: 
 
 @router.post("/forgot-password/", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
 async def forgot_password(request: ForgotPasswordRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = get_client_ip(http_request)
     try:
         await rate_limit(3, 3600, f"forgot_password_ip:{client_ip}")
         await rate_limit(10, 3600, f"forgot_password:{request.email}")
