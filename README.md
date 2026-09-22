@@ -41,7 +41,7 @@ It also lets other services (only core, today) change a user's **role** or **act
 ```
 Browser ──> devboard-auth ──> devboard-email   (sends the mails)
                  │
-                 ├──> devboard-core            (creates the user profile after sign-up)
+                 ├──> devboard-core            (creates the user profile when the email is verified)
                  ├──> PostgreSQL               (users and tokens)
                  └──> Redis                    (rate limits)
 
@@ -137,6 +137,7 @@ alembic revision --autogenerate -m "message"    # make a new one
 
 ## Good to know
 
-- **Sign-up needs devboard-core.** If core is down, sign-up fails and the new user is deleted again.
+- **The core profile is created on email verification, not sign-up.** Register works even if devboard-core is down. Verifying the email calls devboard-core's sync endpoint (safe to call more than once) before marking the user verified — if that call fails, nothing is saved and the same verification link can just be clicked again.
 - **Login needs a verified and active user.**
 - **Users get the `member` role** by default.
+- **`TRUSTED_PROXY_IPS`**: for local dev through the Vite proxy or devboard-web, this needs to be the Docker network's gateway address (commonly `172.18.0.1` — check with `docker network inspect devboard-network`), since both reach this service through the published host port rather than the internal Docker network.
