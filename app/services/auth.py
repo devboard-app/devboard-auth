@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.exceptions import (
-    CoreServiceException,
     EmailAlreadyExistsException,
     InvalidCredentialsException,
     InvalidTokenException,
@@ -36,7 +35,6 @@ from app.repositories.token import (
 from app.repositories.user import (
     get_user_by_email,
     get_user_by_id,
-    hard_delete_user_by_id,
     insert_user,
     mark_user_verified,
     update_user_password,
@@ -73,12 +71,6 @@ async def register(user_email: str, password: str, db: AsyncSession):
     await insert_verification_token(user, verification_token_hash, db)
     await db.commit()
     verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={raw_verification_token}"
-    try:
-        await sync_user_to_core(str(user.id), user.email, str(user.role.value))
-    except Exception:
-        await hard_delete_user_by_id(user.id, db)
-        await db.commit()
-        raise CoreServiceException()
     await send_verification_email(user.email, verify_url)
 
     return user
@@ -148,6 +140,9 @@ async def verify_email(token: str, db: AsyncSession)->None:
     user = await get_user_by_id(verification_token.user_id, db)
     if user is None:
         raise InvalidTokenException()
+    
+    await sync_user_to_core(str(user.id), user.email, str(user.role.value))  # idempotent, safe to retry
+    
     await mark_user_verified(user, db)
     await mark_verification_token_used(verification_token, db)
     await db.commit()
