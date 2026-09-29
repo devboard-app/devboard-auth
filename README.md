@@ -4,7 +4,7 @@
 
 It handles sign-up, login, logout, email checks and password reset. It gives users a **JWT** (a signed pass) that every other service trusts.
 
-- **Port:** `8001`
+- **Port:** `18001`
 - **Stack:** FastAPI, PostgreSQL, Redis, Alembic
 
 ---
@@ -13,7 +13,7 @@ It handles sign-up, login, logout, email checks and password reset. It gives use
 
 1. Open a terminal in `devboard-infra`.
 2. Run `setup.bat`. It creates the database and starts this service.
-3. Open `http://localhost:8001/health`. You should see `{"status": "ok"}`.
+3. Open `http://localhost:18001/health`. You should see `{"status": "ok"}`.
 
 Only want this one service? The database and Redis must already be running. Then:
 
