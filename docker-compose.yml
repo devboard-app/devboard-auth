@@ -13,9 +13,9 @@ services:
     ports:
       - "8001:8000"
     networks:
-      - devboard-network
+      - devboard-ic-network
 
 networks:
-  devboard-network:
-    name: devboard-network
+  devboard-ic-network:
+    name: devboard-ic-network
     external: true
