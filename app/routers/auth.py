@@ -36,51 +36,88 @@ router = APIRouter(
 )
 
 
-@router.post("/register/", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-async def register_user( request: RegisterRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+@router.post(
+    "/register/", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED
+)
+async def register_user(
+    request: RegisterRequest, http_request: Request, db: AsyncSession = Depends(get_db)
+):
     client_ip = get_client_ip(http_request)
     try:
-        await rate_limit(10, 3600, f"register:{client_ip}") # 10 times / 1h
+        await rate_limit(10, 3600, f"register:{client_ip}")  # 10 times / 1h
     except RedisError:
         raise RateLimiterUnavailableException()
 
-    await register(request.email, request.password,db)
+    await register(request.email, request.password, db)
     return RegisterResponse()
 
+
 @router.post("/login/", response_model=LoginResponse, status_code=status.HTTP_200_OK)
-async def login_user(request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+async def login_user(
+    request: LoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)
+):
     client_ip = get_client_ip(http_request)
     try:
         await rate_limit(5, 900, f"login_ip:{client_ip}")
         await rate_limit(5, 900, f"login_email:{request.email}")
     except RedisError:
         raise RateLimiterUnavailableException()
-    jwt_token, raw_refresh_token = await login(request.email, request.password, db, client_ip)
-    return LoginResponse(access_token=jwt_token, refresh_token=raw_refresh_token, expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+    jwt_token, raw_refresh_token = await login(
+        request.email, request.password, db, client_ip
+    )
+    return LoginResponse(
+        access_token=jwt_token,
+        refresh_token=raw_refresh_token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
 
 
-@router.post("/refresh-token/", response_model=RefreshTokenResponse, status_code=status.HTTP_200_OK)
-async def refresh_token(request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
-    new_jwt_token, new_raw_refresh_token= await refresh(request.refresh_token, db)
-    return RefreshTokenResponse(access_token = new_jwt_token, refresh_token=new_raw_refresh_token, expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60)
+@router.post(
+    "/refresh-token/",
+    response_model=RefreshTokenResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def refresh_token(
+    request: RefreshTokenRequest, db: AsyncSession = Depends(get_db)
+):
+    new_jwt_token, new_raw_refresh_token = await refresh(request.refresh_token, db)
+    return RefreshTokenResponse(
+        access_token=new_jwt_token,
+        refresh_token=new_raw_refresh_token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
 
 
-@router.post("/logout/", status_code = status.HTTP_204_NO_CONTENT)
+@router.post("/logout/", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_user(request: LogoutRequest, db: AsyncSession = Depends(get_db)):
     await logout(request.refresh_token, db)
 
 
-@router.post("/logout-all/", status_code= status.HTTP_204_NO_CONTENT)
-async def logout_all_user(request: LogoutAllRequest, db: AsyncSession = Depends(get_db)):
+@router.post("/logout-all/", status_code=status.HTTP_204_NO_CONTENT)
+async def logout_all_user(
+    request: LogoutAllRequest, db: AsyncSession = Depends(get_db)
+):
     await logout_all(request.refresh_token, db)
 
-@router.get("/verify-email/", response_model= VerifyEmailResponse, status_code= status.HTTP_200_OK)
+
+@router.get(
+    "/verify-email/", response_model=VerifyEmailResponse, status_code=status.HTTP_200_OK
+)
 async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
     await verify(token, db)
     return VerifyEmailResponse()
 
-@router.post("/resend-verification/", response_model=ResendVerificationResponse, status_code = status.HTTP_200_OK)
-async def resend_verification(request: ResendVerificationRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+
+@router.post(
+    "/resend-verification/",
+    response_model=ResendVerificationResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def resend_verification(
+    request: ResendVerificationRequest,
+    http_request: Request,
+    db: AsyncSession = Depends(get_db),
+):
     client_ip = get_client_ip(http_request)
     try:
         await rate_limit(3, 3600, f"resend_verification_ip:{client_ip}")
@@ -90,8 +127,17 @@ async def resend_verification(request: ResendVerificationRequest, http_request: 
     await resend(request.email, db)
     return ResendVerificationResponse()
 
-@router.post("/forgot-password/", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
-async def forgot_password(request: ForgotPasswordRequest, http_request: Request, db: AsyncSession = Depends(get_db)):
+
+@router.post(
+    "/forgot-password/",
+    response_model=ForgotPasswordResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    http_request: Request,
+    db: AsyncSession = Depends(get_db),
+):
     client_ip = get_client_ip(http_request)
     try:
         await rate_limit(3, 3600, f"forgot_password_ip:{client_ip}")
@@ -101,7 +147,14 @@ async def forgot_password(request: ForgotPasswordRequest, http_request: Request,
     await forgot_pwd(request.email, db)
     return ForgotPasswordResponse()
 
-@router.post("/reset-password/", response_model=ResetPasswordResponse, status_code=status.HTTP_200_OK)
-async def reset_password(request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+
+@router.post(
+    "/reset-password/",
+    response_model=ResetPasswordResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def reset_password(
+    request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+):
     await reset_pwd(request.token, request.password, db)
     return ResetPasswordResponse()

@@ -14,10 +14,28 @@ router = APIRouter(
     tags=["internal"],
 )
 
-@router.patch("/users/{user_id}/status/", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(verify_internal_key)])
-async def update_user_status(user_id: uuid.UUID, request: UpdateUserStatusRequest, db: AsyncSession= Depends(get_db)):
+
+@router.patch(
+    "/users/{user_id}/status/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_internal_key)],
+)
+async def update_user_status(
+    user_id: uuid.UUID,
+    request: UpdateUserStatusRequest,
+    db: AsyncSession = Depends(get_db),
+):
     await update_user_status_serv(user_id, request.is_active, db)
 
-@router.patch("/users/{user_id}/role/", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(verify_internal_key)])
-async def update_user_role(user_id: uuid.UUID, request: UpdateUserRoleRequest, db: AsyncSession= Depends(get_db)):
+
+@router.patch(
+    "/users/{user_id}/role/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_internal_key)],
+)
+async def update_user_role(
+    user_id: uuid.UUID,
+    request: UpdateUserRoleRequest,
+    db: AsyncSession = Depends(get_db),
+):
     await update_user_role_serv(user_id, request.role, db)

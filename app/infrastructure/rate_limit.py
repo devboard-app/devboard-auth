@@ -11,6 +11,7 @@ async def rate_limit(limit: int, window: int, name: str) -> None:
     if count > limit:
         raise RateLimitExceededException()
 
+
 async def clear_rate_limit(name: str) -> None:
     redis = get_redis_client()
     await redis.delete(f"ratelimit:{name}")

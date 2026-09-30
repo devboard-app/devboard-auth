@@ -23,4 +23,5 @@ class Settings(BaseSettings):
     def trusted_proxy_ips_set(self) -> set[str]:
         return {ip.strip() for ip in self.TRUSTED_PROXY_IPS.split(",") if ip.strip()}
 
+
 settings = Settings()  # type: ignore

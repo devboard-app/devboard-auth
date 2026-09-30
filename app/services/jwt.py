@@ -12,20 +12,24 @@ from app.repositories.token import get_refresh_token_by_hash
 
 
 def create_access_token(user_id: str, email: str, role: str) -> str:
-    payload ={
+    payload = {
         "sub": user_id,
         "email": email,
         "role": role,
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        "exp": datetime.now(timezone.utc)
+        + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     }
     return jwt.encode(payload, settings.JWT_SECRET, settings.JWT_ALGORITHM)
 
+
 def decode_access_token(token: str) -> dict:
-    try: 
-        return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    try:
+        return jwt.decode(
+            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
     except JWTError:
         raise ValueError("Invalid or expired token")
-    
+
 
 def generate_refresh_token() -> tuple[str, str]:
     raw_token = secrets.token_urlsafe(32)
@@ -43,14 +47,17 @@ async def validate_refresh_token(token: str, db: AsyncSession) -> RefreshToken:
     return refresh_token
 
 
-
 def generate_verification_token() -> tuple[str, str]:
     raw_verification_token = secrets.token_urlsafe(32)
-    verification_token_hash = hashlib.sha256(raw_verification_token.encode()).hexdigest()
+    verification_token_hash = hashlib.sha256(
+        raw_verification_token.encode()
+    ).hexdigest()
     return raw_verification_token, verification_token_hash
+
 
 def generate_password_reset_token() -> tuple[str, str]:
     raw_password_reset_token = secrets.token_urlsafe(32)
-    password_reset_token_hash = hashlib.sha256(raw_password_reset_token.encode()).hexdigest()
+    password_reset_token_hash = hashlib.sha256(
+        raw_password_reset_token.encode()
+    ).hexdigest()
     return raw_password_reset_token, password_reset_token_hash
-

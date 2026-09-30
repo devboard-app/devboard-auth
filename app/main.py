@@ -20,23 +20,24 @@ async def lifespan(app: FastAPI):
     await close_http_client()
     await close_redis_client()
 
-app = FastAPI(
-    title="Devboard Auth Service",
-    lifespan=lifespan
-)
+
+app = FastAPI(title="Devboard Auth Service", lifespan=lifespan)
 register_exception_handlers(app)
 app.include_router(auth.router)
 app.include_router(internal.router)
+
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+
 @app.get("/health/db")
 async def health_db(db: AsyncSession = Depends(get_db)):
     try:
         await db.execute(text("SELECT 1"))
-        return JSONResponse(status_code=200, content={"status":"ok"})
+        return JSONResponse(status_code=200, content={"status": "ok"})
     except Exception:
-        return JSONResponse(status_code=500, content={"status":"error", "details":"db unavailable"})
-    
+        return JSONResponse(
+            status_code=500, content={"status": "error", "details": "db unavailable"}
+        )
